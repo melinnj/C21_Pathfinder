@@ -223,10 +223,28 @@ def follow_path(pc, path):
     print("Path navigation complete.")
 
 
-# Main Function Update
+# Insert the initialize_grid function here
+def initialize_grid(scf):
+    global current_position
+    print("Initialization step:")
+
+    print("Place the drone at the endpoint of the path and press Enter.")
+    input("Press Enter when ready...")
+    end_position = current_position[:2]
+
+    print("Place the drone at the start of the path and press Enter.")
+    input("Press Enter when ready...")
+    start_position = current_position[:2]
+
+    print(f"Start position: {start_position}, End position: {end_position}")
+
+    return start_position, end_position
+
+# Replace the relevant part of the main function
 if __name__ == "__main__":
     print("Initializing grid mapping...")
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache="./cache")) as scf:
+        # Wait for logging to start
         log_conf = wait_for_logging(scf)
 
         # Initialize the grid with start and end positions
@@ -235,40 +253,20 @@ if __name__ == "__main__":
         with PositionHlCommander(
             scf, default_height=FLYING_HEIGHT, default_velocity=DEFAULT_VELOCITY
         ) as pc:
+            # Calculate the grid size dynamically or use a predefined size
             grid_size = (16, 16)  # Example: 16x16 grid
 
             print(f"Start position: {start_position}, End position: {end_position}")
             print("Navigating white tiles...")
 
-            # Navigate and map the grid
+            # Modify the navigation to use the initialized start_position
             grid_map = navigate_white_tiles(grid_size, scf, pc)
 
-            print("Mapping complete. Calculating path using A* algorithm...")
-            start_cell = (
-                int((start_position[0] + GRID_ORIGIN_OFFSET) / GRID_RESOLUTION),
-                int((start_position[1] + GRID_ORIGIN_OFFSET) / GRID_RESOLUTION),
-            )
-            end_cell = (
-                int((end_position[0] + GRID_ORIGIN_OFFSET) / GRID_RESOLUTION),
-                int((end_position[1] + GRID_ORIGIN_OFFSET) / GRID_RESOLUTION),
-            )
+            print("Navigation complete. Visualizing final map...")
+            plt.show()
 
-            path = a_star(grid_map, start_cell, end_cell)
-            if path:
-                print(f"Path found: {path}")
-                draw_grid(grid_map, plt.gca(), path=path)  # Visualize the path
-                plt.show()
+            print("Landing drone...")
+            pc.land()
 
-                print("Returning to start position...")
-                follow_path(pc, path[::-1])  # Reverse path to return to start
-
-                print("Following path to endpoint...")
-                follow_path(pc, path)  # Fly along the path to the endpoint
-
-                print("Landing drone...")
-                pc.land()
-            else:
-                print("No path found. Landing drone...")
-                pc.land()
-
+        # Stop logging
         log_conf.stop()
